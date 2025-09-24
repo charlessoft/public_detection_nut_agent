@@ -1,0 +1,386 @@
+name: detection
+on:
+  repository_dispatch:
+    types:
+      - public_detection_nut_agent
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  msw-msvs:
+    runs-on: windows-${{ matrix.vsversion }}
+    name: wxMSW vs${{ matrix.vsversion }} ${{ matrix.configuration }} ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - configuration: 'Debug'
+          #   platform: 'x64'
+          #   vsversion: 2019
+          - configuration: 'Release'
+            platform: 'x64'
+            vsversion: 2022 
+    env:
+      work_directory: detection-nut  # 设置环境变量
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      # - name: Setup SSH
+      #   uses: webfactory/ssh-agent@v0.5.3
+      #   with:
+      #     ssh-private-key: ${{ secrets.SSH_GITEE_PRIVATE_KEY }}
+      # - name: Add Gitee to known hosts
+      #   run: |
+      #     ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+      #     ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+
+      - uses: lukka/get-cmake@latest
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dding on non-Windows
+        if: runner.os != 'Windows'
+        run: |
+          pip install dding
+          mkdir -p ~/.dding
+          dding_secret="${{ github.event.client_payload.dding_secret || secrets.DEFAULT_DDING_SECRET }}"
+          dding_token="${{ github.event.client_payload.dding_token || secrets.DEFAULT_DDING_TOKEN }}"
+          cat <<EOF > ~/.dding/config.json
+          [
+              {
+                  "group": "default",
+                  "secret": "$dding_secret",
+                  "token": "$dding_token"
+              }
+          ]
+          EOF
+
+      - name: Install dding on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pip install dding
+          New-Item -Path $HOME\.dding -ItemType Directory -Force
+          $dding_secret = "${{ github.event.client_payload.dding_secret || secrets.DEFAULT_DDING_SECRET }}"
+          $dding_token = "${{ github.event.client_payload.dding_token || secrets.DEFAULT_DDING_TOKEN }}"
+          $config = @"
+          [
+              {
+                  "group": "default",
+                  "secret": "$dding_secret",
+                  "token": "$dding_token"
+              }
+          ]
+          "@
+          $config | Out-File -FilePath $HOME\.dding\config.json -Encoding utf8
+
+# 下载代码============================================
+      - name: Clone repository from github with trace
+        shell: pwsh
+        run: |
+          $env:GIT_TRACE = "1"
+          # git clone git@github.com:charlessoft/detection-continuity.git  $env:work_directory
+          git clone https://oauth2:${{ secrets.charlessoft_TOKEN }}@github.com/charlessoft/detection-nut.git
+
+
+
+      # - name: Configure build options
+      #   working-directory: ${{ env.work_directory }}
+      #   run: |
+      #       $use_utf8 = "${{ matrix.use_utf8 }}" ? 1 : 0
+      #       if ( $use_utf8 ) {
+      #         $txt = Get-Content setup.h
+      #         Write-Output $txt |
+      #         %{$_ -replace "define wxUSE_UNICODE_UTF8 0", "define wxUSE_UNICODE_UTF8 $use_utf8"} |
+      #         Set-Content setup.h
+      #       }
+
+      # - name: Setup VS2019
+      #   uses: warrenbuckley/Setup-MSBuild@v1
+
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+            vs-prerelease: true
+
+      - name: CMake
+        working-directory: ${{ env.work_directory }}
+        shell: powershell
+        run: |
+          pwd
+          # dir 
+          mkdir build
+          cd build
+          cmake ../ -G "Visual Studio 17 2022" 
+
+      - name: Download External Lib
+        working-directory: ${{ env.work_directory }}
+        run: |
+          set PYTHONIOENCODING=utf-8
+          cd tools/external_lib
+          pip install -r requirements.txt
+          python download.py --arch x64 --build_types dbg --mul
+          python download.py --arch x64 --build_types rel --mul
+
+
+      - name: Build with MSBuild
+        run: msbuild -m -t:Build -p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} detection-nut/cpp-impl/build/detection-nut.sln
+
+
+      # - name: Build with CTest
+      #   working-directory: ${{ env.work_directory }}
+      #   shell: powershell
+      #   run: |
+      #     cd test-prj
+      #     mkdir build
+      #     cd build
+      #     cmake ../ -G "Visual Studio 17 2022" 
+
+      # - name: Build with Gtest MSBuild
+      #   run: msbuild -m -t:Build -p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} detection-continuity/test-prj/build/gtest.sln
+
+
+      # - name: Run GTest Tests
+      #   run: |
+      #     cd detection-continuity/test-prj/librel64
+      #     dir
+      #     ./gtest.exe
+      #     dir 
+
+      # - name: Run Python Tests
+      #   shell: cmd
+      #   run: |
+      #     cd detection-continuity
+      #     dir
+      #     set PYTHONPATH=%cd%
+      #     echo "%PYTHONPATH%"
+      #     cd py
+      #     pip install -r requirements.txt
+      #     cd ../tests
+      #     echo "%PYTHONPATH%"
+      #     python -m unittest discover -s . -p "*.py" || true
+      
+      # - name: Check C++ Python log compare
+      #   run: |
+      #     dir detection-continuity/test-prj/librel64
+      #     $file1 = "detection-continuity/test-prj/librel64/c++.log"
+      #     $file2 = "detection-continuity/tests/py.log"
+
+      #     # Calculate MD5 hash for the first file
+      #     $hash1 = Get-FileHash -Path $file1 -Algorithm MD5
+      #     # Calculate MD5 hash for the second file
+      #     $hash2 = Get-FileHash -Path $file2 -Algorithm MD5
+
+      #     # Compare the hashes
+      #     if ($hash1.Hash -eq $hash2.Hash) {
+      #       Write-Host "The files have the same MD5 hash."
+      #     } else {
+      #       Write-Host "The files have different MD5 hashes."
+      #       exit 1
+      #     }
+
+      - name: Print success message
+        shell: pwsh
+        if: success()
+        run: |
+          $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+          Write-Host "Workflow succeeded for $repoName!"
+          dding "github action success :) for $repoName"
+
+      - name: Print failure message
+        shell: pwsh
+        if: failure()
+        run: |
+          $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+          Write-Host "Workflow failed for $repoName!"
+          dding "github action fail :( $repoName"
+
+
+      # - name: Check Status
+      #   if: ${{ success() }}
+      #   shell: pwsh
+      #   run: |
+      #     $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+      #     Write-Host "Workflow succeeded for $repoName!"
+      #     # dding "github action success :) for $repoName"
+          
+
+      # - name: Check Status
+      #   if: ${{ failure() }}
+      #   shell: pwsh
+      #   run: |
+      #     $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+      #     Write-Host "Workflow failed for $repoName!"
+      #     # dding "github action fail :( $repoName"
+
+      - name: Ls dir
+        run: |
+          echo "%cd%"
+          dir
+          cd detection-continuity
+          dir 
+
+      - name: Archive binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: librel64
+          path: |
+            detection-continuity\librel64
+          retention-days: 1 # <= 这里可以设置保留天数
+      # - name: Build
+      #   working-directory: ${{ env.work_directory }}
+      #   run: |
+      #       msbuild /noLogo /m '/p:Configuration=${{ matrix.configuration }}' /p:Platform=${{ matrix.platform }} build\msw\wx_vc16.sln
+      #       if ( '${{ matrix.configuration }}'.IndexOf('DLL') -ne -1 ) {
+      #           $dlldir = Join-Path (Get-Location) 'lib\vc_${{ matrix.platform }}_dll'
+      #           Write-Output "Adding $dlldir to the PATH"
+      #           $dlldir | Out-File -Append $env:GITHUB_PATH
+      #       }
+
+  #     - name: Package Debug files (Win32)
+  #       working-directory: ${{ env.work_directory }}
+  #       if: matrix.configuration == 'Debug' && matrix.platform == 'Win32'
+  #       run: |
+  #         mkdir -p package
+  #         mv ./include ./package/
+  #         mv ./lib/vc_lib ./package/
+  #         pwd
+  #         ls ./package
+
+  #     - name: Upload Debug artifact (Win32)
+  #       if: matrix.configuration == 'Debug' && matrix.platform == 'Win32'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: vc_lib_dbg_win32
+  #         path: ${{ env.work_directory }}/package
+  #         retention-days: 1
+
+  #     - name: Package Release files (Win32)
+  #       working-directory: ${{ env.work_directory }}
+  #       if: matrix.configuration == 'Release' && matrix.platform == 'Win32'
+  #       run: |
+  #         mkdir -p package
+  #         mv ./include ./package/
+  #         mv ./lib/vc_lib ./package/
+  #         pwd
+  #         ls ./package
+
+  #     - name: Upload Release artifact (Win32)
+  #       if: matrix.configuration == 'Release' && matrix.platform == 'Win32'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: vc_lib_rel_win32
+  #         path: ${{ env.work_directory }}/package
+  #         retention-days: 1
+
+  #     - name: Package Debug files (x64)
+  #       working-directory: ${{ env.work_directory }}
+  #       if: matrix.configuration == 'Debug' && matrix.platform == 'x64'
+  #       run: |
+  #         mkdir -p package
+  #         mv ./include ./package/
+  #         mv ./lib/vc_x64_lib ./package/
+  #         pwd
+  #         ls ./package
+
+  #     - name: Upload Debug artifact (x64)
+  #       if: matrix.configuration == 'Debug' && matrix.platform == 'x64'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: vc_lib_dbg_x64
+  #         path: ${{ env.work_directory }}/package
+  #         retention-days: 1
+
+  #     - name: Package Release files (x64)
+  #       working-directory: ${{ env.work_directory }}
+  #       if: matrix.configuration == 'Release' && matrix.platform == 'x64'
+  #       run: |
+  #         mkdir -p package
+  #         mv ./include ./package/
+  #         mv ./lib/vc_x64_lib ./package/
+  #         pwd
+  #         ls ./package
+
+  #     - name: Upload Release artifact (x64)
+  #       if: matrix.configuration == 'Release' && matrix.platform == 'x64'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: vc_lib_rel_x64
+  #         path: ${{ env.work_directory }}/package
+  #         retention-days: 1
+
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: msw-msvs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: echo "RELEASE_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - name: Install GitHub CLI
+        uses: sersoft-gmbh/setup-gh-cli-action@v2
+
+      - name: Delete existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete $RELEASE_DATE --yes || true
+
+      - name: Create new release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create $RELEASE_DATE -t "Release $RELEASE_DATE" -n "Automated release for $RELEASE_DATE"
+
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: zip Artifacts
+        run: |
+          ls ./artifacts
+          cd ./artifacts
+          mv librel64 DetectionContinuity
+          zip -r DetectionContinuity.zip DetectionContinuity
+          
+          
+          
+      - name: Generate MD5 Checksums
+        run: |
+          > ./artifacts/filelist.txt  # 清空或创建 filelist.txt 文件
+          for file in ./artifacts/*.{zip,exe}; do
+            # Calculate MD5 checksum
+            md5sum=$(md5sum "$file" | awk '{ print $1 }')
+      
+            # Write to filelist.txt
+            echo "$(basename "$file") | ${md5sum}" >> ./artifacts/filelist.txt
+          done
+
+      - name: Upload Artifacts to Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd ./artifacts
+          gh release upload $RELEASE_DATE ./*.zip
+          gh release upload $RELEASE_DATE filelist.txt
+          
+      - name: LS Artifacts
+        run: |
+          ls 
+          ls ./artifacts
