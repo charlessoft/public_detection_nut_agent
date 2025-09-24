@@ -45,10 +45,11 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_GITEE_PRIVATE_KEY }}
+      # - name: Setup SSH
+      #   uses: webfactory/ssh-agent@v0.5.3
+      #   with:
+      #     ssh-private-key: ${{ secrets.SSH_GITEE_PRIVATE_KEY }}
+          
       - name: Add Gitee to known hosts
         run: |
           ssh-keyscan gitee.com >> ~/.ssh/known_hosts
