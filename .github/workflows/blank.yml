@@ -30,24 +30,36 @@ jobs:
       #   with:
       #     ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: Setup SSH (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+      # - name: Setup SSH (Windows)
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
 
-          # 检查文件是否存在和大小
-          ls -la ~/.ssh/id_rsa
+      - name: Setup and Debug SSH (Windows Compatible)
+        run: |
+          # 创建SSH目录
+          mkdir -p ~/.ssh
           
-          # 检查密钥格式（只显示第一行和最后一行）
-          head -1 ~/.ssh/id_rsa
-          tail -1 ~/.ssh/id_rsa
+          # 写入SSH密钥
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           
-          # 检查密钥是否可以被SSH识别（不显示内容）
-          ssh-keygen -l -f ~/.ssh/id_rsa || echo "Key format error"
+          # 显示文件信息
+          Write-Host "=== File exists check ==="
+          Test-Path ~/.ssh/id_rsa
           
-          # ssh-keyscan github.com >> ~/.ssh/known_hosts
+          Write-Host "=== File info ==="
+          Get-Item ~/.ssh/id_rsa | Format-List
+          
+          Write-Host "=== First line (should be BEGIN) ==="
+          Get-Content ~/.ssh/id_rsa | Select-Object -First 1
+          
+          Write-Host "=== Last line (should be END) ==="
+          Get-Content ~/.ssh/id_rsa | Select-Object -Last 1
+          
+          Write-Host "=== Total lines ==="
+          (Get-Content ~/.ssh/id_rsa).Count
           echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
           echo "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=" >> ~/.ssh/known_hosts
           echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=" >> ~/.ssh/known_hosts
