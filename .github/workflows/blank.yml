@@ -177,8 +177,8 @@ jobs:
         run: |
           pwd
           # dir 
-          mkdir build
-          cd build
+          mkdir cpp-impl/build
+          cd cpp-impl/build
           cmake ../ -G "Visual Studio 17 2022" 
 
       - name: Download External Lib
