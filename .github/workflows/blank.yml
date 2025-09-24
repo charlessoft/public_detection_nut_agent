@@ -318,12 +318,12 @@ jobs:
           $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
           Write-Host "Workflow failed for $repoName!"
           dding "github action fail :( $repoName"
-      - name: Ls dir
-        run: |
-          echo "%cd%"
-          dir
-          cd detection-nut\cpp-impl
-          dir 
+      # - name: Ls dir
+      #   run: |
+      #     echo "%cd%"
+      #     dir
+      #     cd detection-nut\cpp-impl
+      #     dir 
           
       - name: Archive binaries
         uses: actions/upload-artifact@v4
