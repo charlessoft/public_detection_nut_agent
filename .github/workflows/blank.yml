@@ -24,19 +24,35 @@ jobs:
     env:
       work_directory: detection-nut  # 设置环境变量
     steps:
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+          
+      - name: Cache SSH known hosts
+        id: cache-ssh-hosts
+        uses: actions/cache@v3
+        with:
+          path: ~/.ssh/known_hosts
+          key: ssh-known-hosts-${{ runner.os }}-v1
+          restore-keys: |
+            ssh-known-hosts-${{ runner.os }}-
+            
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # - name: Setup SSH
-      #   uses: webfactory/ssh-agent@v0.5.3
-      #   with:
-      #     ssh-private-key: ${{ secrets.SSH_GITEE_PRIVATE_KEY }}
-      # - name: Add Gitee to known hosts
-      #   run: |
-      #     ssh-keyscan gitee.com >> ~/.ssh/known_hosts
-      #     ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_GITEE_PRIVATE_KEY }}
+      - name: Add Gitee to known hosts
+        run: |
+          ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 
       - uses: lukka/get-cmake@latest
