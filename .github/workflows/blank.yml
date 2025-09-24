@@ -322,7 +322,7 @@ jobs:
         run: |
           echo "%cd%"
           dir
-          cd quick-print
+          cd detection-nut\cpp-impl
           dir 
           
       - name: Archive binaries
@@ -336,7 +336,7 @@ jobs:
       - name: Archive binaries
         uses: actions/upload-artifact@v4
         with:
-          name: QuickPrintSetupArtifact
+          name: DetectionNutSetupArtifact
           path: |
             detection-nut\cpp-impl\setup\exe\Output\DetectionNutSetup.exe
             detection-nut\cpp-impl\setup\exe\Output\DetectionNutUpdateSetup.exe
