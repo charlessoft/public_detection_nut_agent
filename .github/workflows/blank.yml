@@ -292,7 +292,7 @@ jobs:
         shell: cmd
         run: |
           ls
-          cd detection-nut\setup\exe 
+          cd detection-nut\cpp-impl\setup\exe 
           if errorlevel 1 exit 1
           
           build.bat
@@ -304,7 +304,7 @@ jobs:
         shell: cmd
         run: |
           ls
-          cd detection-nut\setup\exe || exit /b 1
+          cd detection-nut\cpp-impl\setup\exe || exit /b 1
           build_update.bat
           if errorlevel 1 exit 1
           
@@ -313,7 +313,7 @@ jobs:
         run: |
           echo " copy to download server"
           ls
-          cd detection-nut/setup/exe 
+          cd detection-nut/cpp-impl\setup/exe 
           ls Output
           bash copy.sh
 
