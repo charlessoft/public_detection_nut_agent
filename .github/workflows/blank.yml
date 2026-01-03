@@ -313,7 +313,7 @@ jobs:
         run: |
           echo " copy to download server"
           ls
-          cd detection-nut/cpp-impl\setup/exe 
+          cd detection-nut/cpp-impl/setup/exe 
           ls Output
           bash copy.sh
 
