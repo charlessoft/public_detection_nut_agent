@@ -102,6 +102,7 @@ jobs:
       - name: Install dding
         shell: pwsh
         run: |
+          pip install certifi
           pip install dding
           New-Item -Path $HOME\.dding -ItemType Directory -Force
           $dding_secret = "${{ github.event.client_payload.secret || secrets.DEFAULT_DDING_SECRET }}"
