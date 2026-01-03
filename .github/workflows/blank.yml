@@ -96,36 +96,16 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
 
-      - name: Install dding on non-Windows
-        if: runner.os != 'Windows'
-        run: |
-          pip install dding
-          mkdir -p ~/.dding
-          dding_secret="${{ github.event.client_payload.dding_secret || secrets.DEFAULT_DDING_SECRET }}"
-          dding_token="${{ github.event.client_payload.dding_token || secrets.DEFAULT_DDING_TOKEN }}"
-          cat <<EOF > ~/.dding/config.json
-          [
-              {
-                  "group": "default",
-                  "secret": "$dding_secret",
-                  "token": "$dding_token"
-              }
-          ]
-          EOF
-
-      - name: Install dding on Windows
-        if: runner.os == 'Windows'
+      - name: Install dding
         shell: pwsh
         run: |
           pip install dding
           New-Item -Path $HOME\.dding -ItemType Directory -Force
-          $dding_secret = "${{ github.event.client_payload.dding_secret || secrets.DEFAULT_DDING_SECRET }}"
-          $dding_token = "${{ github.event.client_payload.dding_token || secrets.DEFAULT_DDING_TOKEN }}"
+          $dding_secret = "${{ github.event.client_payload.secret || secrets.DEFAULT_DDING_SECRET }}"
+          $dding_token = "${{ github.event.client_payload.token || secrets.DEFAULT_DDING_TOKEN }}"
           $config = @"
           [
               {
@@ -136,6 +116,20 @@ jobs:
           ]
           "@
           $config | Out-File -FilePath $HOME\.dding\config.json -Encoding utf8
+
+      # - name: Set up JDK 8 (OpenJDK)
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     distribution: 'zulu'
+      #     java-version: '8'
+
+      # - name: Check Java version
+      #   run: java -version
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
 # 下载代码============================================
       - name: Clone repository from github with trace
