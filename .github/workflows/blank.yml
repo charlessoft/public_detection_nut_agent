@@ -403,28 +403,28 @@ jobs:
       #     Write-Host "Workflow failed for $repoName!"
       #     # dding "github action fail :( $repoName"
 
-      - name: Inno Package
-        shell: cmd
-        run: |
-          ls
-          cd detection-nut\cpp-impl\setup\exe || exit /b 1
-          build.bat || exit /b 1
+      # - name: Inno Package
+      #   shell: cmd
+      #   run: |
+      #     ls
+      #     cd detection-nut\cpp-impl\setup\exe || exit /b 1
+      #     build.bat || exit /b 1
           
-          build_update.bat || exit /b 1
-      - name: Inno update Package
-        shell: cmd
-        run: |
-          ls
-          cd detection-nut\cpp-impl\setup\exe || exit /b 1
-          build_update.bat || exit /b 1
-      - name: cp update to download server 
-        shell: bash 
-        run: |
-          echo " copy to download server"
-          ls
-          cd detection-nut/cpp-impl/setup/exe 
-          ls Output
-          bash copy.sh
+      #     build_update.bat || exit /b 1
+      # - name: Inno update Package
+      #   shell: cmd
+      #   run: |
+      #     ls
+      #     cd detection-nut\cpp-impl\setup\exe || exit /b 1
+      #     build_update.bat || exit /b 1
+      # - name: cp update to download server 
+      #   shell: bash 
+      #   run: |
+      #     echo " copy to download server"
+      #     ls
+      #     cd detection-nut/cpp-impl/setup/exe 
+      #     ls Output
+      #     bash copy.sh
       - name: Check Status
         if: ${{ success() }}
         shell: pwsh
