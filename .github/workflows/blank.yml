@@ -191,6 +191,52 @@ jobs:
       - name: Build with MSBuild
         run: msbuild -m -t:Build -p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} detection-nut/cpp-impl/build/detection-nut.sln
 
+      - name: Test - Check Runtime DLLs in System32
+        shell: pwsh
+        run: |
+          Write-Host "=== Testing Runtime DLL Availability in System32 ==="
+          $system32 = "$env:SystemRoot\System32"
+          Write-Host "System32 path: $system32"
+          
+          # 要检查的运行时DLL列表
+          $runtimeDlls = @(
+              "MSVCP140.dll",
+              "VCRUNTIME140.dll", 
+              "VCRUNTIME140_1.dll",
+              "api-ms-win-crt-runtime-l1-1-0.dll",
+              "api-ms-win-crt-heap-l1-1-0.dll",
+              "api-ms-win-crt-string-l1-1-0.dll",
+              "api-ms-win-crt-stdio-l1-1-0.dll",
+              "api-ms-win-crt-time-l1-1-0.dll",
+              "api-ms-win-crt-convert-l1-1-0.dll",
+              "api-ms-win-crt-filesystem-l1-1-0.dll",
+              "api-ms-win-crt-math-l1-1-0.dll",
+              "api-ms-win-crt-locale-l1-1-0.dll"
+          )
+          
+          $foundCount = 0
+          $notFoundCount = 0
+          
+          Write-Host "`n=== DLL检查结果 ==="
+          foreach ($dll in $runtimeDlls) {
+              $sourcePath = "$system32\$dll"
+              if (Test-Path $sourcePath) {
+                  $fileInfo = Get-Item $sourcePath
+                  Write-Host "✓ FOUND: $dll (Size: $($fileInfo.Length) bytes, Modified: $($fileInfo.LastWriteTime))" -ForegroundColor Green
+                  $foundCount++
+              } else {
+                  Write-Host "✗ NOT FOUND: $dll" -ForegroundColor Red
+                  $notFoundCount++
+              }
+          }
+          
+          Write-Host "`n=== 汇总 ==="
+          Write-Host "找到的DLL: $foundCount" -ForegroundColor Green
+          Write-Host "未找到的DLL: $notFoundCount" -ForegroundColor Red
+          
+          # 停止后续步骤执行 - 强制退出
+          Write-Host "`n=== 测试完成，停止后续步骤执行 ==="
+          exit 1
 
       # - name: Build with CTest
       #   working-directory: ${{ env.work_directory }}
