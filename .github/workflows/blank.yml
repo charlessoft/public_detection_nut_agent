@@ -594,8 +594,8 @@ jobs:
         run: |
           ls ./artifacts
           cd ./artifacts
-          mv librel64 DetectionContinuity
-          zip -r DetectionContinuity.zip DetectionContinuity
+          mv librel64 DetectionApp
+          zip -r DetectionApp.zip DetectionApp
           
           
           
@@ -616,6 +616,7 @@ jobs:
         run: |
           cd ./artifacts
           gh release upload $RELEASE_DATE ./*.zip
+          gh release upload $RELEASE_DATE ./DetectionNutSetupArtifact/*.exe
           gh release upload $RELEASE_DATE filelist.txt
           
       - name: LS Artifacts
