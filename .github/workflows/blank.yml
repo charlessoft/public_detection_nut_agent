@@ -458,10 +458,10 @@ jobs:
       - name: Archive binaries
         uses: actions/upload-artifact@v4
         with:
-          name: DetectionNutSetupArtifact
+          name: DetectionAppSetupArtifact
           path: |
-            detection-nut\cpp-impl\setup\exe\Output\DetectionNutSetup.exe
-            detection-nut\cpp-impl\setup\exe\Output\DetectionNutUpdateSetup.exe
+            detection-nut\cpp-impl\setup\exe\Output\DetectionAppSetup.exe
+            detection-nut\cpp-impl\setup\exe\Output\DetectionAppUpdateSetup.exe
           retention-days: 1 # <= 这里可以设置保留天数
           
       # - name: Ls dir
@@ -616,7 +616,7 @@ jobs:
         run: |
           cd ./artifacts
           gh release upload $RELEASE_DATE ./*.zip
-          gh release upload $RELEASE_DATE ./DetectionNutSetupArtifact/*.exe
+          gh release upload $RELEASE_DATE ./DetectionAppSetupArtifact/*.exe
           gh release upload $RELEASE_DATE filelist.txt
           
       - name: LS Artifacts
