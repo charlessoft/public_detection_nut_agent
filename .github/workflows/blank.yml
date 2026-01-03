@@ -89,15 +89,7 @@ jobs:
       #     ssh-keyscan gitee.com >> ~/.ssh/known_hosts
       #     ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-
       - uses: lukka/get-cmake@latest
-
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
 
       - name: Install dding
         shell: pwsh
@@ -194,15 +186,19 @@ jobs:
       - name: Test - Check Runtime DLLs in System32
         shell: pwsh
         run: |
-          Write-Host "=== Testing Runtime DLL Availability in System32 ==="
+          Write-Host "=== Testing Runtime DLL Availability ==="
           $system32 = "$env:SystemRoot\System32"
           Write-Host "System32 path: $system32"
           
-          # 要检查的运行时DLL列表
-          $runtimeDlls = @(
+          # VC++ Redistributable DLL（必须拷贝的）
+          $vcRedistDlls = @(
               "MSVCP140.dll",
               "VCRUNTIME140.dll", 
-              "VCRUNTIME140_1.dll",
+              "VCRUNTIME140_1.dll"
+          )
+          
+          # Universal CRT DLL（可能在不同位置）
+          $ucrtDlls = @(
               "api-ms-win-crt-runtime-l1-1-0.dll",
               "api-ms-win-crt-heap-l1-1-0.dll",
               "api-ms-win-crt-string-l1-1-0.dll",
@@ -214,25 +210,62 @@ jobs:
               "api-ms-win-crt-locale-l1-1-0.dll"
           )
           
-          $foundCount = 0
-          $notFoundCount = 0
+          $searchPaths = @(
+              "$env:SystemRoot\System32",
+              "$env:SystemRoot\System32\downlevel",
+              "$env:SystemRoot\SysWOW64"
+          )
           
-          Write-Host "`n=== DLL检查结果 ==="
-          foreach ($dll in $runtimeDlls) {
-              $sourcePath = "$system32\$dll"
-              if (Test-Path $sourcePath) {
-                  $fileInfo = Get-Item $sourcePath
-                  Write-Host "✓ FOUND: $dll (Size: $($fileInfo.Length) bytes, Modified: $($fileInfo.LastWriteTime))" -ForegroundColor Green
-                  $foundCount++
-              } else {
+          Write-Host "`n=== VC++ Redistributable DLL检查 ==="
+          $vcFoundCount = 0
+          foreach ($dll in $vcRedistDlls) {
+              $found = $false
+              foreach ($path in $searchPaths) {
+                  $fullPath = "$path\$dll"
+                  if (Test-Path $fullPath) {
+                      $fileInfo = Get-Item $fullPath
+                      Write-Host "✓ FOUND: $dll in $path (Size: $($fileInfo.Length) bytes)" -ForegroundColor Green
+                      $vcFoundCount++
+                      $found = $true
+                      break
+                  }
+              }
+              if (-not $found) {
                   Write-Host "✗ NOT FOUND: $dll" -ForegroundColor Red
-                  $notFoundCount++
+              }
+          }
+          
+          Write-Host "`n=== Universal CRT DLL检查 ==="
+          $ucrtFoundCount = 0
+          foreach ($dll in $ucrtDlls) {
+              $found = $false
+              foreach ($path in $searchPaths) {
+                  $fullPath = "$path\$dll"
+                  if (Test-Path $fullPath) {
+                      $fileInfo = Get-Item $fullPath
+                      Write-Host "✓ FOUND: $dll in $path (Size: $($fileInfo.Length) bytes)" -ForegroundColor Green
+                      $ucrtFoundCount++
+                      $found = $true
+                      break
+                  }
+              }
+              if (-not $found) {
+                  Write-Host "? NOT FOUND: $dll (可能是系统管理的虚拟DLL)" -ForegroundColor Yellow
               }
           }
           
           Write-Host "`n=== 汇总 ==="
-          Write-Host "找到的DLL: $foundCount" -ForegroundColor Green
-          Write-Host "未找到的DLL: $notFoundCount" -ForegroundColor Red
+          Write-Host "VC++ Redistributable DLL: $vcFoundCount/$($vcRedistDlls.Count) 找到" -ForegroundColor Green
+          Write-Host "Universal CRT DLL: $ucrtFoundCount/$($ucrtDlls.Count) 找到" -ForegroundColor Yellow
+          
+          Write-Host "`n=== 建议 ==="
+          if ($vcFoundCount -eq $vcRedistDlls.Count) {
+              Write-Host "✓ 所有关键的VC++ Runtime DLL都找到了，可以进行拷贝" -ForegroundColor Green
+          } else {
+              Write-Host "✗ 部分VC++ Runtime DLL未找到" -ForegroundColor Red
+          }
+          
+          Write-Host "Universal CRT DLL通常由Windows系统管理，可能不需要手动拷贝" -ForegroundColor Yellow
           
           # 停止后续步骤执行 - 强制退出
           Write-Host "`n=== 测试完成，停止后续步骤执行 ==="
