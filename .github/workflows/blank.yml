@@ -292,7 +292,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p detection-nut/cpp-impl/librel64/models
-          curl -L -v -o detection-nut/cpp-impl/librel64/models/best. onnx https://download.happygogo. site/best. onnx
+          curl -L -v -o detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
           echo "Downloaded file info:"
           ls -la detection-nut/cpp-impl/librel64/models/
           file detection-nut/cpp-impl/librel64/models/best.onnx
