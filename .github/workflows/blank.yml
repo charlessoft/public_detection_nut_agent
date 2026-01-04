@@ -288,6 +288,12 @@ jobs:
               Write-Host "`n✅ 所有关键DLL拷贝完成，继续执行" -ForegroundColor Green
           }
 
+      - name: Download bbtx
+        shell: bash
+        run: |
+          mkdir detection-nut/cpp-impl/librel64/models
+          wget -O detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
+
       - name: Inno Package
         shell: cmd
         run: |
