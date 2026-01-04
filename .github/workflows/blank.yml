@@ -292,7 +292,8 @@ jobs:
         shell: bash
         run: |
           mkdir detection-nut/cpp-impl/librel64/models
-          wget -O detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
+          curl -L -o detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
+          # wget -O detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
 
       - name: Inno Package
         shell: cmd
