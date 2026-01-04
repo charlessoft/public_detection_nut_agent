@@ -376,21 +376,7 @@ jobs:
       #       exit 1
       #     }
 
-      - name: Print success message
-        shell: pwsh
-        if: success()
-        run: |
-          $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
-          Write-Host "Workflow succeeded for $repoName!"
-          dding "github action success :) for $repoName"
 
-      - name: Print failure message
-        shell: pwsh
-        if: failure()
-        run: |
-          $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
-          Write-Host "Workflow failed for $repoName!"
-          dding "github action fail :( $repoName"
 
 
       # - name: Check Status
@@ -630,3 +616,41 @@ jobs:
         run: |
           ls 
           ls ./artifacts
+
+  dingding-error:
+    runs-on: ubuntu-latest
+    needs: [msw-msvs, create-release]
+    if: ${{ failure() }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send dingding notify error
+        uses: zcong1993/actions-ding@master
+        with:
+          dingToken: ${{ github.event.client_payload.dding_token.token || secrets.DEFAULT_DDING_TOKEN }} #钉钉token
+          secret: ${{ github.event.client_payload.dding_token.secret || secrets.DEFAULT_DDING_SECRET }}
+          body: |
+            {
+              "msgtype": "text",
+              "text": {
+                  "content": "status:[打叉][打叉][打叉]  ${{ github.event.client_payload.project_name || github.repository }} 执行失败\n提交者:  ${{ github.event.client_payload.ext.pusher.username || github.actor }}\n${{ github.ref_type }}: ${{ github.event.client_payload.mybranch || github.ref_name }}\nlog: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+             }
+             }
+
+  dingding-success:
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+    needs: [msw-msvs, create-release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send dingding notify success
+        uses: zcong1993/actions-ding@master
+        with:
+          dingToken: ${{ github.event.client_payload.dding_token.token || secrets.DEFAULT_DDING_TOKEN }} #钉钉token
+          secret: ${{ github.event.client_payload.dding_token.secret || secrets.DEFAULT_DDING_SECRET }}
+          body: |
+            {
+             "msgtype": "text",
+             "text": {
+                 "content": "status:[对勾][对勾][对勾][100分]  ${{ github.event.client_payload.project_name || github.repository }} 执行成功\n提交者: ${{ github.event.client_payload.ext.pusher.username || github.actor }}\n${{ github.ref_type }}: ${{ github.event.client_payload.mybranch || github.ref_name }}\nlog: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+             }
+             }
