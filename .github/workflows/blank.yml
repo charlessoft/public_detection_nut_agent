@@ -291,9 +291,12 @@ jobs:
       - name: Download bbtx
         shell: bash
         run: |
-          mkdir detection-nut/cpp-impl/librel64/models
-          curl -L -o detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
-          # wget -O detection-nut/cpp-impl/librel64/models/best.onnx https://download.happygogo.site/best.onnx
+          mkdir -p detection-nut/cpp-impl/librel64/models
+          curl -L -v -o detection-nut/cpp-impl/librel64/models/best. onnx https://download.happygogo. site/best. onnx
+          echo "Downloaded file info:"
+          ls -la detection-nut/cpp-impl/librel64/models/
+          file detection-nut/cpp-impl/librel64/models/best.onnx
+          head -n 5 detection-nut/cpp-impl/librel64/models/best.onnx
 
       - name: Inno Package
         shell: cmd
